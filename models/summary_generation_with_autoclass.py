@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 class LLMGenerator:
     def __init__(self, model_name: str, cache_dir: str ="/import/nlp-datasets/LLMs/", **kwargs):
         if model_name == "tulu":
+            # TODO: if we want to distribute this work we have to think about where to upload weights etc. (probably huggingface)
             ADAPTER_PATH = "/import/nlp/jsong/tulu_k1_pkt/"
             BASE_MODEL_ID = "microsoft/Phi-3-mini-4k-instruct"
 
