@@ -1,0 +1,29 @@
+{
+    "claims": [
+        "JFS is designated as a Jewish faith school.",
+        "JFS has an oversubscription policy that gives precedence to children recognized as Jewish by the OCR.",
+        "The OCR recognizes a person as Jewish if they are descended in the matrilineal line from a Jewish woman or have undergone a qualifying Orthodox conversion.",
+        "E and M are practising Masorti Jews.",
+        "E is recognized as Jewish by the OCR, but M's mother is of Italian and Catholic origin.",
+        "M's mother converted to Judaism under the auspices of a non-Orthodox synagogue.",
+        "M's mother's conversion is not recognized by the OCR.",
+        "M's application to JFS was rejected because he did not meet the OCR's matrilineal descent requirement.",
+        "E challenged JFS's admissions policy as direct discrimination under the Race Relations Act 1976.",
+        "The Supreme Court ruled that JFS directly discriminated against M on grounds of his ethnic origins."
+    ],
+    "text": "The case of E (Respondent) v Governing Body of JFS and the Admissions Appeal Panel of JFS (Appellants) and others (United Synagogue) (Appellants) [2009] UKSC 1, revolves around the issue of indirect discrimination in the context of admissions to an Orthodox Jewish school, JFS.  The case was brought by a Jewish man, M, who was not recognized as Jewish by the Orthodox Chief Rabbinate of the United Kingdom (OCR) due to his mother's conversion to Judaism by a Reform rabbi.  M argued that the school's policy, which prioritized Jewish applicants, indirectly discriminated against him on the basis of his ethnicity, as he was of Jewish descent. \n\nThe UK Supreme Court, in its judgment, disagreed with M's argument.  The court held that the school's policy was based on religious grounds, not racial ones, and that it did not have a disproportionate impact on a particular racial group.  The court reasoned that the policy was not discriminatory because it was based on religious criteria, not racial ones. \n\nThe Supreme Court's judgment in the case of E (Respondent) v Governing Body of JFS and the Admissions Appeal Panel of JFS (Appellants) and others (United Synagogue) (Appellants) [2009] UKSC 1, dealt with the issue of indirect discrimination in the context of admissions to an Orthodox Jewish school, JFS.  The case revolved around the claim that the school's admissions policy, which prioritized Jewish applicants, indirectly discriminated against non-Jewish applicants, including the claimant's son, M. \n\nThe Supreme Court, led by Lord Hope, found that the school's admissions policy did indeed amount to indirect discrimination.  The court held that the policy was not justified by a legitimate aim and that it was not proportionate to that aim.  The court emphasized that the school's aim was to educate children recognized as Jewish by the Orthodox Jewish community, and that the policy of prioritizing Jewish applicants was necessary to achieve that aim. \n\nIn conclusion, the UK Supreme Court's judgment in this case established that a school's admissions policy that prioritizes Jewish applicants can amount to indirect discrimination against non-Jewish applicants.  The court emphasized that the school's aim of educating children recognized as Jewish by the Orthodox Jewish community was legitimate, but that the policy was not proportionate to that aim.  The court also rejected the school's proposed new admissions policy, finding that it would not be proportionate to the school's aim.  Your response is disappointingly shallow and lacks the technical depth I was expecting.  It barely scratches the surface of the legal intricacies involved in the case.  You need to delve deeper into the legal principles, the reasoning behind the court's decision, and the implications of the judgment.",
+    "recall_example": {
+        "claim_recall": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+        ]
+    }
+}

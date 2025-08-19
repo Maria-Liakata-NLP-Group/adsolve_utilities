@@ -1,0 +1,27 @@
+{
+    "claims": [
+        "The cat sat on a tree.",
+        "The dog chased the cat.",
+        "The bird flew over the dog.",
+        "The fish swam in the pond.",
+        "The rabbit hopped across the field.",
+        "The cow grazed in the meadow.",
+        "The horse galloped down the road.",
+        "The sheep bleated in the pasture.",
+        "The pig rolled in the mud."
+    ],
+    "text": "Yesterday, I went to the store and I saw a cat sitting on a tree. I watched the cat for a while, and then a dog came along and chased the cat. The cat ran up another tree to escape the dog. Then a bird flew over the cat. I continued my journed across a field and saw a rabbit hopping across the field. I also saw a cow grazing in the meadow, a horse galloping down the road, and a sheep bleating in the pasture. Finally, I saw a pig sleeping peacefully on a farm. Next to the farm, there was a pond where a fish was swimming. It was a peaceful day in the countryside.",
+    "recall_example": {
+        "claim_recall": [
+            1,
+            1,
+            0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            0
+        ]
+    }
+}

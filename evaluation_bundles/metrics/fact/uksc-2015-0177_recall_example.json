@@ -1,0 +1,29 @@
+{
+    "claims": [
+        "Littlewoods overpaid VAT to HMRC between 1973 and 2004.",
+        "HMRC repaid the principal sum of 205 million to Littlewoods between 2005 and 2008.",
+        "HMRC also paid simple interest of 268 million to Littlewoods between 2005 and 2008.",
+        "Littlewoods seeks additional compound interest of 1.25 billion based on common law claims.",
+        "Littlewoods claims the compound interest is due under the common law of restitution.",
+        "The Supreme Court was asked to determine if common law claims are excluded by sections 78 and 80 of the 1994 Act.",
+        "The lower courts ruled that Littlewoods' common law claims were barred by the 1994 Act.",
+        "Littlewoods appeals the lower court's decision on the exclusion of common law claims.",
+        "The Supreme Court dismissed Littlewoods' cross appeal on the first issue.",
+        "The Supreme Court allowed HMRC's appeal on the second issue regarding EU law compliance."
+    ],
+    "text": "The case of Littlewoods Ltd v HMRC [2011] UKSC 101 (2011) is a significant legal dispute in the UK Supreme Court that revolves around the recovery of money paid under a mistake in law.  The case is particularly important due to its implications for the principles of effectiveness and equivalence under EU law, specifically in the context of the recovery of VAT paid in breach of EU law.  The court's decision in this case has far-reaching implications for the calculation of interest in such cases, and it is crucial for legal journalists to understand the key points of the judgment to accurately report on its impact. \n\nThe case involves Littlewoods, a retailer, and HM Revenue & Customs (HMRC), the UK tax authority.  Littlewoods had paid VAT on goods it had purchased from a supplier, but the VAT was later found to have been overcharged due to a mistake in the supplier's accounting.  HMRC sought to recover the overpaid VAT from Littlewoods, and Littlewoods argued that it was entitled to interest on the overpaid VAT.  The court had to determine whether the VAT Act 1994, as amended by the VAT Act 1999, allowed for the recovery of interest on overpaid VAT. \n\nThe court's decision was based on the principles of effectiveness and equivalence under EU law.  The principle of effectiveness requires that national rules on the calculation of interest should not deprive the taxpayer of an adequate indemnity for the loss occasioned through the undue payment of the tax.  The principle of equivalence requires that the national rules on the calculation of interest should be equivalent to the rules that would apply if the taxpayer had paid the tax under the VAT Act 1994, as amended by the VAT Act 1999. \n\nThe court concluded that the VAT Act 1994, as amended by the VAT Act 1999, did not allow for the recovery of interest on overpaid VAT.  The court found that the VAT Act 1994, as amended by the VAT Act 1999, did not provide for the recovery of interest on overpaid VAT, and that the national rules on the calculation of interest were not equivalent to the rules that would apply if the taxpayer had paid the tax under the VAT Act 1994, as amended by the VAT Act 1999. \n\nThe court's decision has significant implications for the calculation of interest in cases involving the recovery of VAT paid in breach of EU law.  The court's interpretation of the VAT Act 1994, as amended by the VAT Act 1999, means that taxpayers who have overpaid VAT may not be entitled to interest on the overpaid VAT.  This decision may have a significant impact on the financial position of taxpayers who have overpaid VAT, as they may not be able to recover the overpaid VAT through the payment of interest.",
+    "recall_example": {
+        "claim_recall": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+        ]
+    }
+}
