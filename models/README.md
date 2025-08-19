@@ -1,6 +1,6 @@
 <!-- @format -->
 
-# AdSolVe Models
+# AdSoLve Models
 
 This directory contains models for various tasks, e.g. summarisation
 
