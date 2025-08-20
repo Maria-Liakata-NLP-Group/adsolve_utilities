@@ -1,0 +1,15 @@
+# @format
+# moc = moments of change
+prompt: |
+  You are a therapist who reads social media chronological text written by an individual who has mental health issues.
+  Your goal is to understand and summarise changes over time in their mood, well-being and functioning (individual/ self well being; interpersonal well-being including family and close relationships; social well-being, including work, school and friends).
+  From the following text, identify whether there are changes in the individual's expressed mood, well-being, and functioning.
+
+  a. Overall, does the mood/ well being/ functioning stay consistent or fluctuate over time?
+  b. Are there specific positive to negative changes? Which events (personal or interpersonal) are associated with these changes?
+  c. Are there specific negative to positive changes? Which events (personal or interpersonal) are associated with these changes?
+
+  Answer each concisely and reply None if not available. You must not make anything up.
+  Keep the description concise and only describe observations if they are fully supported by the text.
+max_tokens: 1000
+temperature: 0.0

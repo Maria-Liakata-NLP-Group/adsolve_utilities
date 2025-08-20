@@ -2,14 +2,13 @@ import torch
 import logging
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from peft import PeftModel
-from typing import List, Optional
-import json
-import os
+from typing import List
 
 logger = logging.getLogger(__name__)
 
 class LLMGenerator:
-    def __init__(self, model_name: str, cache_dir: str ="/import/nlp-datasets/LLMs/", **kwargs):
+    def __init__(self, model_name: str, cache_dir: str ="/import/nlp-datasets/LLMs/"): 
+        self.model_name = model_name
         if model_name == "tulu":
             # TODO: if we want to distribute this work we have to think about where to upload weights etc. (probably huggingface)
             ADAPTER_PATH = "/import/nlp/jsong/tulu_k1_pkt/"
@@ -20,7 +19,7 @@ class LLMGenerator:
                             torch_dtype="auto",    
                             device_map="auto",     
                         )
-            self.model_name = PeftModel.from_pretrained(
+            self.model = PeftModel.from_pretrained(
                     base_model,
                     ADAPTER_PATH,
                     is_trainable=False
@@ -30,7 +29,7 @@ class LLMGenerator:
                 cache_dir=cache_dir
             )
         else:
-            self.model_name = model_name
+            self.model = model_name
             self.tokenizer = AutoTokenizer.from_pretrained(
                 model_name,
                 cache_dir=cache_dir,
@@ -40,9 +39,8 @@ class LLMGenerator:
         print(f"Using device: {self.device}")
         self.pipe = pipeline(
             "text-generation",
-            model=self.model_name,
+            model=self.model,
             tokenizer=self.tokenizer,
-            # device=self.device,
             torch_dtype=torch.bfloat16
         )
 

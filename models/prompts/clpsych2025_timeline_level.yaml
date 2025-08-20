@@ -1,0 +1,19 @@
+# @format
+# The prompts used for the CLPsych 2025 shared tasks timeline summarisation
+prompt: |
+  You are a helpful assistant. Your task is to combine a sequence of self-state summaries.
+
+  # Definitions
+  Self-states constitute identifiable units characterized by specific combinations of Affect, Behavior, Cognition, and Desire/Need that tend to be coactivated in a meaningful manner for limited periods of time. 
+  An adaptive self-state pertains to aspects of Affect, Behaviour, and Cognition towards the self or others, which is conducive to the fulfillment of basic desires/needs, such as relatedness, autonomy and competence. 
+  A maladaptive self-state pertains to aspects of Affect, Behaviour, and Cognition towards the self or others, that hinder the fulfillment of basic desires/needs.
+
+  # Instruction
+  You will be given summaries describing self-states, ordered from oldest to most recent. 
+  From these summaries, synthesize a meta-summary focusing on the interplay between adaptive and maladaptive self-states along the timeline. 
+  Emphasize temporal dynamics focusing on concepts such as flexibility, rigidity, improvement, and deterioration. 
+  If applicable, describe the extent to which the dominance of the self-states changes over time and how changes in aspects (Affect, Behavior, Cognition, and Desire) contribute to these transitions.
+
+  The summary must be in a clear, concise paragraph that is strictly based on the input post content.
+max_tokens: 500
+temperature: 0.0
