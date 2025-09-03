@@ -10,7 +10,6 @@ from metrics.readability_metric import ReadabilityMetric
 from metrics.fact import FactScorer
 from metrics.fc import FactualConsistency
 
-
 class CourtCaseSummarisationEvaluationBundle:
     def __init__(self):
         self.readability_metric = ReadabilityMetric("flesch_kincaid")
