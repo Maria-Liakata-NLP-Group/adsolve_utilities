@@ -98,6 +98,7 @@ class LLMGenerator:
 
         for p, max, temperature in zip(prompt, max_tokens, temperatures):
             summary = []
+            # TODO: batch texts if there are multiple texts to summarise
             for t in text:
                 current_summary = self.generate(
                     prompt=p,

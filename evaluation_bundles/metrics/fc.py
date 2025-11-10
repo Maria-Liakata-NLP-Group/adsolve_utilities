@@ -159,16 +159,16 @@ class FactualConsistency:
         if isinstance(reference_text, str):
             # If reference_text is a single string it is treated as the gold summary
             result = self._calculate_fc_expert_metric(llm_text, reference_text)
-            # split into right format
-            return result["mean_consistency"], {"scores": result["sentence_level_consistencies"], "sentences": result["sentences"]}
+            
         elif isinstance(reference_text, list):
             # If reference_text is a list, it is treated as the timeline posts
             # convert timeline posts to a single string
             reference_text = " ".join(reference_text)
-            return self._calculate_fc_timeline_metric(llm_text, reference_text)
+            result = self._calculate_fc_timeline_metric(llm_text, reference_text)
         else:
             raise ValueError("reference_text must be a string or a list of strings")
-
+        # split into right format
+        return result["mean_consistency"], {"scores": result["sentence_level_consistencies"], "sentences": result["sentences"]}
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Calculate factual consisteny.")
     parser.add_argument('--llm_summaries', type=str, help=' Path to the LLM summaries JSON file.')
