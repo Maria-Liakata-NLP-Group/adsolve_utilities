@@ -1,12 +1,13 @@
 bert_score
 datasets
-green_score
+# green_score - this currently causes some dependency issues
 nltk
 numpy
 pandas
 peft
 PyYAML
 readability_lxml
+rouge
 spacy
 torch
 tqdm

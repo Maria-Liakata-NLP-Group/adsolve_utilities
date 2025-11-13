@@ -35,18 +35,17 @@ class EA:
         sents: list of sent_tokenized str
         chunk_size: maximum token count of each chunk
         """
-        chunks = []
-        curr_chunk = []
-        curr_chunk_len = 0
+        chunks, curr_chunk, curr_len = [], [], 0
         for sent in sents:
-            curr_len = len(word_tokenize(sent))
-            if curr_len + curr_chunk_len < chunk_size:
-                curr_chunk.append(sent)
-                curr_chunk_len += curr_len
+            l = len(word_tokenize(sent))
+            if curr_len + l < chunk_size:
+                curr_chunk.append(sent); curr_len += l
             else:
-                chunks.append(curr_chunk)
-                curr_chunk = [sent]
-                curr_chunk_len = curr_len
+                if curr_chunk:
+                    chunks.append(curr_chunk)
+                curr_chunk, curr_len = [sent], l
+        if curr_chunk:
+            chunks.append(curr_chunk)
         return chunks
 
     def avg_helper(self, summary_type, scores_dict, return_idx=0):
@@ -77,5 +76,6 @@ class EA:
             curr_nli_factual_consistency_contradict_mean.append(
                 (np.mean(cs), np.mean(cs_binary))
             )
-        
-        return curr_nli_factual_consistency_contradict_mean
+
+        # TODO: don't just export mean but also sentence level detail
+        return np.mean([r[0] for r in curr_nli_factual_consistency_contradict_mean])
