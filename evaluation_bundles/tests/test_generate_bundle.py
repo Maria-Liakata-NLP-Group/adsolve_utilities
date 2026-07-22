@@ -212,3 +212,88 @@ def test_format_ctor_call_includes_fact_fixed_params():
     info = gb.METRIC_REGISTRY["fact"]
     call = gb._format_ctor_call(info, {})
     assert call == "FactScorer(llm_text={}, reference={}, min_claim=1, max_claim=30)"
+
+
+def test_loop_body_lines_none_kind_no_detail():
+    entry = {"id": "intra", "metric": "intra_nli"}
+    info = gb.METRIC_REGISTRY["intra_nli"]
+    lines = gb._loop_body_lines(entry, info, "intra")
+    assert lines == [
+        "intra_score = self.intra.calculate_metric(llm_summary)",
+        "results['intra']['document_level'].append(intra_score)",
+    ]
+
+
+def test_loop_body_lines_single_kind_no_detail():
+    entry = {"id": "rouge_1", "metric": "rouge", "reference": "gold"}
+    info = gb.METRIC_REGISTRY["rouge"]
+    lines = gb._loop_body_lines(entry, info, "rouge_1")
+    assert lines == [
+        "rouge_1_score = self.rouge_1.calculate_metric(llm_summary, gold_summary)",
+        "results['rouge_1']['document_level'].append(rouge_1_score)",
+    ]
+
+
+def test_loop_body_lines_dual_kind_with_detail_uses_shared_attr():
+    entry = {"id": "fc_document", "metric": "fc", "reference": "posts"}
+    info = gb.METRIC_REGISTRY["fc"]
+    lines = gb._loop_body_lines(entry, info, "fc_expert")
+    assert lines == [
+        "fc_document_score, fc_document_detail = self.fc_expert.calculate_metric(llm_summary, document_posts)",
+        "results['fc_document']['document_level'].append(fc_document_score)",
+        "results['fc_document']['detail'].append(fc_document_detail)",
+    ]
+
+
+def test_loop_body_lines_precompute_claims_kind():
+    entry = {
+        "id": "conciseness", "metric": "fact", "mode": "recall",
+        "claim_source": "llm", "reference": "gold",
+    }
+    info = gb.METRIC_REGISTRY["fact"]
+    lines = gb._loop_body_lines(entry, info, "conciseness")
+    assert lines == [
+        'conciseness_score, conciseness_detail = self.conciseness.calculate_metric('
+        'type="recall", claims=conciseness_claims[document_id], reference=gold_summary)',
+        "results['conciseness']['document_level'].append(conciseness_score)",
+        "results['conciseness']['detail'].append(conciseness_detail)",
+    ]
+
+
+def test_claims_block_lines_llm_source():
+    entry = {"id": "conciseness", "claim_source": "llm"}
+    lines = gb._claims_block_lines(entry, "conciseness")
+    assert lines == [
+        "print(\"Generating claims for 'conciseness'...\")",
+        "conciseness_claims = self.conciseness.get_claims(llm_summaries)",
+    ]
+
+
+def test_claims_block_lines_gold_source():
+    entry = {"id": "conciseness", "claim_source": "gold"}
+    lines = gb._claims_block_lines(entry, "conciseness")
+    assert lines[1] == "conciseness_claims = self.conciseness.get_claims(gold_summaries)"
+
+
+def test_batch_block_lines_gold_reference():
+    entry = {"id": "green_score", "reference": "gold"}
+    lines = gb._batch_block_lines(entry, "green_score")
+    assert lines == [
+        "green_score_references = [gold_summaries[doc_id] for doc_id in results['document_ids']]",
+        "green_score_hypotheses = [llm_summaries[doc_id] for doc_id in results['document_ids']]",
+        "green_score_mean, green_score_std, green_score_score_list, green_score_summary, _ = "
+        "self.green_score.calculate_metric(green_score_references, green_score_hypotheses)",
+        "results['green_score']['document_level'] = green_score_score_list",
+        "results['green_score']['mean'] = green_score_mean",
+        "results['green_score']['std'] = green_score_std",
+        "results['green_score']['summary'] = green_score_summary",
+    ]
+
+
+def test_batch_block_lines_posts_reference_joins():
+    entry = {"id": "green_score", "reference": "posts"}
+    lines = gb._batch_block_lines(entry, "green_score")
+    assert lines[0] == (
+        'green_score_references = [" ".join(posts[doc_id]) for doc_id in '
+        "results['document_ids']]"
+    )

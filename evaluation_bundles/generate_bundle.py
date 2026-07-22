@@ -165,3 +165,56 @@ def _format_ctor_call(info: MetricInfo, entry_params: dict) -> str:
     merged = {**info.fixed_params, **info.default_params, **entry_params}
     args = ", ".join(f"{k}={v!r}" for k, v in merged.items())
     return f"{info.class_name}({args})"
+
+
+def _loop_body_lines(entry: dict, info: MetricInfo, attr: str) -> list:
+    entry_id = entry["id"]
+    if info.kind == InputKind.NONE:
+        call = f"self.{attr}.calculate_metric(llm_summary)"
+    elif info.kind == InputKind.PRECOMPUTE_CLAIMS:
+        ref_expr = _reference_expr(entry, info)
+        call = (
+            f'self.{attr}.calculate_metric(type="{entry["mode"]}", '
+            f"claims={entry_id}_claims[document_id], reference={ref_expr})"
+        )
+    else:
+        ref_expr = _reference_expr(entry, info)
+        call = f"self.{attr}.calculate_metric(llm_summary, {ref_expr})"
+
+    if info.returns_detail:
+        return [
+            f"{entry_id}_score, {entry_id}_detail = {call}",
+            f"results['{entry_id}']['document_level'].append({entry_id}_score)",
+            f"results['{entry_id}']['detail'].append({entry_id}_detail)",
+        ]
+    return [
+        f"{entry_id}_score = {call}",
+        f"results['{entry_id}']['document_level'].append({entry_id}_score)",
+    ]
+
+
+def _claims_block_lines(entry: dict, attr: str) -> list:
+    entry_id = entry["id"]
+    source = "llm_summaries" if entry["claim_source"] == "llm" else "gold_summaries"
+    return [
+        f"print(\"Generating claims for '{entry_id}'...\")",
+        f"{entry_id}_claims = self.{attr}.get_claims({source})",
+    ]
+
+
+def _batch_block_lines(entry: dict, attr: str) -> list:
+    entry_id = entry["id"]
+    if entry["reference"] == "gold":
+        refs_expr = "gold_summaries[doc_id]"
+    else:
+        refs_expr = '" ".join(posts[doc_id])'
+    return [
+        f"{entry_id}_references = [{refs_expr} for doc_id in results['document_ids']]",
+        f"{entry_id}_hypotheses = [llm_summaries[doc_id] for doc_id in results['document_ids']]",
+        f"{entry_id}_mean, {entry_id}_std, {entry_id}_score_list, {entry_id}_summary, _ = "
+        f"self.{attr}.calculate_metric({entry_id}_references, {entry_id}_hypotheses)",
+        f"results['{entry_id}']['document_level'] = {entry_id}_score_list",
+        f"results['{entry_id}']['mean'] = {entry_id}_mean",
+        f"results['{entry_id}']['std'] = {entry_id}_std",
+        f"results['{entry_id}']['summary'] = {entry_id}_summary",
+    ]
