@@ -114,3 +114,76 @@ def test_load_session_reads_from_disk(tmp_path):
         {"problem": "p", "activity": "a", "outcome": "o"},
     )
     assert pts.load_session(conv_path, summary_path) == ("p a o", ["hi"])
+
+
+def _write_dataset(tmp_path, n=3):
+    for i in range(n):
+        user_dir = tmp_path / f"user{i}"
+        user_dir.mkdir(parents=True, exist_ok=True)
+        _write_session(
+            user_dir, f"user{i}", f"sess{i}",
+            [{"role": "user", "content": f"message {i}"}],
+            {"problem": f"p{i}", "activity": f"a{i}", "outcome": f"o{i}"},
+        )
+    return tmp_path
+
+
+def test_convert_dataset_writes_expected_json_files(tmp_path):
+    input_dir = _write_dataset(tmp_path / "input", n=2)
+    output_dir = tmp_path / "output"
+    llm_summaries, posts = pts.convert_dataset(input_dir, output_dir)
+    assert llm_summaries == {"user0_sess0": "p0 a0 o0", "user1_sess1": "p1 a1 o1"}
+    assert posts == {"user0_sess0": ["message 0"], "user1_sess1": ["message 1"]}
+    assert json.loads((output_dir / "llm_summaries.json").read_text()) == llm_summaries
+    assert json.loads((output_dir / "posts.json").read_text()) == posts
+
+
+def test_convert_dataset_skips_session_with_empty_summary_field(tmp_path, capsys):
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+    user_dir = input_dir / "user0"
+    user_dir.mkdir()
+    _write_session(
+        user_dir, "user0", "sess0",
+        [{"role": "user", "content": "hi"}],
+        {"problem": "", "activity": "a", "outcome": "o"},
+    )
+    llm_summaries, posts = pts.convert_dataset(input_dir, tmp_path / "output")
+    assert llm_summaries == {}
+    assert posts == {}
+    assert "user0_sess0" in capsys.readouterr().err
+
+
+def test_convert_dataset_limit_and_seed_are_deterministic(tmp_path):
+    input_dir = _write_dataset(tmp_path / "input", n=5)
+    llm_summaries_1, _ = pts.convert_dataset(input_dir, tmp_path / "out1", limit=2, seed=42)
+    llm_summaries_2, _ = pts.convert_dataset(input_dir, tmp_path / "out2", limit=2, seed=42)
+    assert len(llm_summaries_1) == 2
+    assert llm_summaries_1 == llm_summaries_2
+
+
+def test_convert_dataset_limit_larger_than_dataset_returns_all(tmp_path):
+    input_dir = _write_dataset(tmp_path / "input", n=2)
+    llm_summaries, _ = pts.convert_dataset(input_dir, tmp_path / "output", limit=10)
+    assert len(llm_summaries) == 2
+
+
+def test_main_writes_files_with_explicit_args(tmp_path):
+    input_dir = _write_dataset(tmp_path / "input", n=1)
+    output_dir = tmp_path / "output"
+    exit_code = pts.main(["--input_dir", str(input_dir), "--output_dir", str(output_dir)])
+    assert exit_code == 0
+    assert (output_dir / "llm_summaries.json").exists()
+    assert (output_dir / "posts.json").exists()
+
+
+def test_main_respects_limit_and_seed(tmp_path):
+    input_dir = _write_dataset(tmp_path / "input", n=5)
+    output_dir = tmp_path / "output"
+    exit_code = pts.main([
+        "--input_dir", str(input_dir), "--output_dir", str(output_dir),
+        "--limit", "2", "--seed", "7",
+    ])
+    assert exit_code == 0
+    llm_summaries = json.loads((output_dir / "llm_summaries.json").read_text())
+    assert len(llm_summaries) == 2
