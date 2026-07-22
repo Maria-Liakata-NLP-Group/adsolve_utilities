@@ -386,3 +386,34 @@ def render_bundle(spec: dict, spec_path: str) -> str:
     lines.append("")
     lines.extend(_cli_lines(spec, class_name, uses_posts))
     return "\n".join(lines) + "\n"
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Generate an evaluation_bundles/<name>_evaluation.py script from a YAML spec."
+    )
+    parser.add_argument("--spec", type=str, required=True, help="Path to the YAML bundle spec.")
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=os.path.dirname(os.path.abspath(__file__)),
+        help="Directory to write the generated bundle script into.",
+    )
+    args = parser.parse_args(argv)
+
+    spec = load_spec(args.spec)
+    try:
+        validate_spec(spec)
+    except SpecError as exc:
+        print(f"Invalid spec '{args.spec}':\n{exc}", file=sys.stderr)
+        return 1
+
+    source = render_bundle(spec, args.spec)
+    output_path = Path(args.output_dir) / f"{spec['name']}_evaluation.py"
+    output_path.write_text(source)
+    print(f"Wrote {output_path}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,3 +1,4 @@
+import subprocess
 import sys
 from pathlib import Path
 
@@ -390,3 +391,39 @@ def test_render_bundle_final_mean_loop_excludes_batch_metrics():
     source = gb.render_bundle(spec, "spec.yaml")
     assert "for metric_id in ['rouge_1']:" in source
     assert "results['green_score']['mean'] = green_score_mean" in source
+
+
+def test_main_writes_generated_file(tmp_path):
+    spec_path = _write_spec(tmp_path, MINIMAL_VALID_SPEC)
+    exit_code = gb.main(["--spec", spec_path, "--output-dir", str(tmp_path)])
+    assert exit_code == 0
+    output_path = tmp_path / "my_use_case_evaluation.py"
+    assert output_path.exists()
+    content = output_path.read_text()
+    assert "class MyUseCaseEvaluationBundle:" in content
+    compile(content, "<generated>", "exec")
+
+
+def test_main_returns_nonzero_and_writes_nothing_on_invalid_spec(tmp_path, capsys):
+    spec_path = _write_spec(tmp_path, """
+name: my_use_case
+metrics:
+  - id: bad
+    metric: not_a_real_metric
+""")
+    exit_code = gb.main(["--spec", spec_path, "--output-dir", str(tmp_path)])
+    assert exit_code == 1
+    assert not (tmp_path / "my_use_case_evaluation.py").exists()
+    captured = capsys.readouterr()
+    assert "unknown metric" in captured.err
+
+
+def test_cli_subprocess_generates_file(tmp_path):
+    spec_path = _write_spec(tmp_path, MINIMAL_VALID_SPEC)
+    generator = Path(__file__).resolve().parents[1] / "generate_bundle.py"
+    result = subprocess.run(
+        [sys.executable, str(generator), "--spec", spec_path, "--output-dir", str(tmp_path)],
+        capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert (tmp_path / "my_use_case_evaluation.py").exists()
