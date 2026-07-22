@@ -218,3 +218,171 @@ def _batch_block_lines(entry: dict, attr: str) -> list:
         f"results['{entry_id}']['std'] = {entry_id}_std",
         f"results['{entry_id}']['summary'] = {entry_id}_summary",
     ]
+
+
+def _import_lines(spec: dict) -> list:
+    seen = set()
+    lines = []
+    for entry in spec["metrics"]:
+        info = METRIC_REGISTRY[entry["metric"]]
+        key = (info.module, info.class_name)
+        if key not in seen:
+            seen.add(key)
+            lines.append(f"from {info.module} import {info.class_name}")
+    return sorted(lines)
+
+
+def _init_lines(instances) -> list:
+    lines = []
+    for attr, metric_key, params in instances:
+        info = METRIC_REGISTRY[metric_key]
+        lines.append(f"self.{attr} = {_format_ctor_call(info, params)}")
+    return lines
+
+
+def _results_seed_lines(spec: dict) -> list:
+    lines = []
+    for entry in spec["metrics"]:
+        info = METRIC_REGISTRY[entry["metric"]]
+        entry_id = entry["id"]
+        if info.kind == InputKind.BATCH:
+            lines.append(
+                f"'{entry_id}': {{\"document_level\": [], \"mean\": None, "
+                f'"std": None, "summary": None}},'
+            )
+        elif info.returns_detail:
+            lines.append(f"'{entry_id}': {{\"document_level\": [], \"mean\": None, \"detail\": []}},")
+        else:
+            lines.append(f"'{entry_id}': {{\"document_level\": [], \"mean\": None}},")
+    return lines
+
+
+def _cli_lines(spec: dict, class_name: str, uses_posts: bool) -> list:
+    name = spec["name"]
+    lines = [
+        'if __name__ == "__main__":',
+        f'    parser = argparse.ArgumentParser(description="Evaluate {name}.")',
+        "    parser.add_argument('--llm_summaries', type=str, help='Path to the LLM summaries JSON file.')",
+        "    parser.add_argument('--gold_summaries', type=str, help='Path to the gold summaries JSON file.')",
+        "    parser.add_argument('--combined_summaries', type=str, default=None, help='Path to the combined summaries JSON file (optional). If provided, it will be used instead of LLM summaries and gold summaries.')",
+    ]
+    if uses_posts:
+        lines.append(
+            "    parser.add_argument('--posts', type=str, required=True, help='Path to the posts JSON file (document_id -> list of source texts).')"
+        )
+    lines.append(
+        f"    parser.add_argument('--output_file', type=str, default='{name}_evaluation_results.json', help='Path to save the evaluation results JSON file.')"
+    )
+    lines += [
+        "    args = parser.parse_args()",
+        "",
+        "    if args.combined_summaries:",
+        "        print(f\"Loading combined summaries from {args.combined_summaries}\")",
+        "        with open(args.combined_summaries, 'r') as f:",
+        "            combined_summaries = json.load(f)",
+        '        llm_summaries = {key: value["summary"] for key, value in combined_summaries.items()}',
+        '        gold_summaries = {key: value["reference"] for key, value in combined_summaries.items()}',
+        "    elif args.llm_summaries and args.gold_summaries:",
+        "        print(f\"Loading LLM summaries from {args.llm_summaries}\")",
+        "        with open(args.llm_summaries, 'r') as f:",
+        "            llm_summaries = json.load(f)",
+        "        print(f\"Loading gold summaries from {args.gold_summaries}\")",
+        "        with open(args.gold_summaries, 'r') as f:",
+        "            gold_summaries = json.load(f)",
+        "    else:",
+        '        raise ValueError("Either --combined_summaries or both --llm_summaries and --gold_summaries must be provided.")',
+        "",
+    ]
+    if uses_posts:
+        lines += [
+            "    print(f\"Loading posts from {args.posts}\")",
+            "    with open(args.posts, 'r') as f:",
+            "        posts = json.load(f)",
+            "",
+        ]
+    call_args = "llm_summaries, gold_summaries, posts" if uses_posts else "llm_summaries, gold_summaries"
+    lines += [
+        f'    print("Creating evaluation bundle for {name}.")',
+        f"    evaluation_bundle = {class_name}()",
+        '    print("Evaluating LLM.")',
+        f"    results = evaluation_bundle.evaluate({call_args})",
+        "",
+        "    print(f\"Saving evaluation results to {args.output_file}\")",
+        "    output_file = args.output_file",
+        "    with open(output_file, 'w') as f:",
+        "        json.dump(results, f, indent=4)",
+    ]
+    return lines
+
+
+def render_bundle(spec: dict, spec_path: str) -> str:
+    class_name = f"{to_pascal_case(spec['name'])}EvaluationBundle"
+    uses_posts = _uses_posts(spec)
+    entry_attr, instances = _instance_groups(spec)
+
+    loop_entries = [e for e in spec["metrics"] if METRIC_REGISTRY[e["metric"]].kind != InputKind.BATCH]
+    precompute_entries = [e for e in loop_entries if METRIC_REGISTRY[e["metric"]].kind == InputKind.PRECOMPUTE_CLAIMS]
+    batch_entries = [e for e in spec["metrics"] if METRIC_REGISTRY[e["metric"]].kind == InputKind.BATCH]
+    non_batch_ids = [e["id"] for e in loop_entries]
+
+    lines = [
+        f"# Generated by generate_bundle.py from {spec_path}",
+        "# Regenerating from that spec will overwrite manual edits to this file.",
+        "import argparse",
+        "import sys",
+        "import os",
+        "import json",
+        "from tqdm import tqdm",
+        "import numpy as np",
+        "sys.path.append(os.path.dirname(os.path.abspath(__file__)))",
+        "",
+    ]
+    lines.extend(_import_lines(spec))
+    lines += ["", "", f"class {class_name}:", "    def __init__(self):"]
+    for line in _init_lines(instances):
+        lines.append(f"        {line}")
+    lines.append("")
+
+    evaluate_sig = "    def evaluate(self, llm_summaries: dict, gold_summaries: dict"
+    evaluate_sig += ", posts: dict = None) -> dict:" if uses_posts else ") -> dict:"
+    lines.append(evaluate_sig)
+    lines.append("        results = {")
+    for line in _results_seed_lines(spec):
+        lines.append(f"            {line}")
+    lines.append("            'document_ids': list(llm_summaries.keys())")
+    lines.append("        }")
+    lines.append("")
+
+    for entry in precompute_entries:
+        attr = entry_attr[entry["id"]]
+        for line in _claims_block_lines(entry, attr):
+            lines.append(f"        {line}")
+        lines.append("")
+
+    lines.append("        for document_id in tqdm(results['document_ids']):")
+    lines.append("            llm_summary = llm_summaries[document_id]")
+    lines.append("            gold_summary = gold_summaries[document_id]")
+    if uses_posts:
+        lines.append("            document_posts = posts[document_id]")
+    lines.append("")
+    for entry in loop_entries:
+        info = METRIC_REGISTRY[entry["metric"]]
+        attr = entry_attr[entry["id"]]
+        for line in _loop_body_lines(entry, info, attr):
+            lines.append(f"            {line}")
+        lines.append("")
+
+    for entry in batch_entries:
+        attr = entry_attr[entry["id"]]
+        for line in _batch_block_lines(entry, attr):
+            lines.append(f"        {line}")
+        lines.append("")
+
+    lines.append(f"        for metric_id in {non_batch_ids!r}:")
+    lines.append("            results[metric_id]['mean'] = float(np.mean(results[metric_id]['document_level']))")
+    lines.append("")
+    lines.append("        return results")
+    lines.append("")
+    lines.append("")
+    lines.extend(_cli_lines(spec, class_name, uses_posts))
+    return "\n".join(lines) + "\n"
