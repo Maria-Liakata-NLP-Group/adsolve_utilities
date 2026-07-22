@@ -30,6 +30,7 @@ dependencies = [
 [project.optional-dependencies]
 # Let users choose their Torch build (CPU/CUDA) explicitly:
 torch = ["torch>=2.7"]
+dev = ["pytest>=8.0"]
 
 [project.urls]
 Repository = "https://github.com/Maria-Liakata-NLP-Group/adsolve_utilities"
