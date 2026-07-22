@@ -154,6 +154,46 @@ def test_convert_dataset_skips_session_with_empty_summary_field(tmp_path, capsys
     assert "user0_sess0" in capsys.readouterr().err
 
 
+def test_convert_dataset_skips_session_with_invalid_json_in_conversation(tmp_path, capsys):
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+    user_dir = input_dir / "user0"
+    user_dir.mkdir()
+    # Write an invalid JSON conversation file
+    conv_path = user_dir / "user0_sess0.json"
+    conv_path.write_text("not valid json")
+    # Write a valid summary file
+    summary_path = user_dir / "user0_sess0_session_summary.json"
+    summary_path.write_text(json.dumps({"problem": "p", "activity": "a", "outcome": "o"}))
+
+    llm_summaries, posts = pts.convert_dataset(input_dir, tmp_path / "output")
+    assert llm_summaries == {}
+    assert posts == {}
+    err = capsys.readouterr().err
+    assert "user0_sess0" in err
+    assert "JSONDecodeError" in err
+
+
+def test_convert_dataset_skips_session_with_missing_content_key(tmp_path, capsys):
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+    user_dir = input_dir / "user0"
+    user_dir.mkdir()
+    # Write a valid JSON conversation file but without the "content" key
+    conv_path = user_dir / "user0_sess0.json"
+    conv_path.write_text(json.dumps({"user_id": "user0", "session_id": "sess0"}))
+    # Write a valid summary file
+    summary_path = user_dir / "user0_sess0_session_summary.json"
+    summary_path.write_text(json.dumps({"problem": "p", "activity": "a", "outcome": "o"}))
+
+    llm_summaries, posts = pts.convert_dataset(input_dir, tmp_path / "output")
+    assert llm_summaries == {}
+    assert posts == {}
+    err = capsys.readouterr().err
+    assert "user0_sess0" in err
+    assert "KeyError" in err
+
+
 def test_convert_dataset_limit_and_seed_are_deterministic(tmp_path):
     input_dir = _write_dataset(tmp_path / "input", n=5)
     llm_summaries_1, _ = pts.convert_dataset(input_dir, tmp_path / "out1", limit=2, seed=42)

@@ -72,7 +72,14 @@ def convert_dataset(input_dir: Path, output_dir: Path, limit: int = None, seed: 
     llm_summaries = {}
     posts = {}
     for document_id, conversation_path, summary_path in pairs:
-        result = load_session(conversation_path, summary_path)
+        try:
+            result = load_session(conversation_path, summary_path)
+        except (json.JSONDecodeError, KeyError, OSError) as e:
+            print(
+                f"warning: skipping {document_id} - {type(e).__name__}: {e}",
+                file=sys.stderr,
+            )
+            continue
         if result is None:
             print(f"warning: skipping {document_id} - empty summary field", file=sys.stderr)
             continue
