@@ -113,3 +113,55 @@ def _validate_entry_params(prefix: str, entry_id: str, entry: dict, info: Metric
             f"metric '{info.key}', allowed: {sorted(info.allowed_params)}"
         ]
     return []
+
+
+def to_pascal_case(snake: str) -> str:
+    return "".join(part.capitalize() for part in snake.split("_"))
+
+
+def _uses_posts(spec: dict) -> bool:
+    return any(entry.get("reference") == "posts" for entry in spec["metrics"])
+
+
+def _instance_groups(spec: dict):
+    """Group metric entries sharing the same (metric, params) so identical, possibly
+    GPU-heavy, metric instances are only constructed once and reused across ids -
+    e.g. `fc_expert`/`fc_document` in the social-media bundle both reuse one
+    FactualConsistency instance today."""
+    group_attr: dict = {}
+    entry_attr: dict = {}
+    instances: list = []
+    for entry in spec["metrics"]:
+        metric_key = entry["metric"]
+        params = entry.get("params", {})
+        gkey = (metric_key, tuple(sorted(params.items())))
+        if gkey not in group_attr:
+            attr_name = entry["id"]
+            group_attr[gkey] = attr_name
+            instances.append((attr_name, metric_key, params))
+        entry_attr[entry["id"]] = group_attr[gkey]
+    return entry_attr, instances
+
+
+def _reference_expr(entry: dict, info: MetricInfo) -> str:
+    reference = entry["reference"]
+    source_expr = {
+        "gold": "gold_summary",
+        "posts": "document_posts",
+        "llm": "llm_summary",
+    }[reference]
+    if info.kind == InputKind.SINGLE and reference == "posts":
+        return '" ".join(document_posts)'
+    if info.kind == InputKind.LIST and reference == "gold":
+        return "[gold_summary]"
+    if info.kind == InputKind.LIST and reference == "llm":
+        return "[llm_summary]"
+    if info.kind == InputKind.PRECOMPUTE_CLAIMS and reference == "posts":
+        return '" ".join(document_posts)'
+    return source_expr
+
+
+def _format_ctor_call(info: MetricInfo, entry_params: dict) -> str:
+    merged = {**info.fixed_params, **info.default_params, **entry_params}
+    args = ", ".join(f"{k}={v!r}" for k, v in merged.items())
+    return f"{info.class_name}({args})"

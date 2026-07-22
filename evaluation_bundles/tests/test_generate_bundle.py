@@ -125,3 +125,90 @@ metrics:
     message = str(exc_info.value)
     assert "'reference' must be one of" in message
     assert "unknown metric 'does_not_exist'" in message
+
+
+def test_to_pascal_case():
+    assert gb.to_pascal_case("my_use_case") == "MyUseCase"
+    assert gb.to_pascal_case("court_case") == "CourtCase"
+    assert gb.to_pascal_case("x") == "X"
+
+
+def test_uses_posts_true_when_any_reference_is_posts():
+    spec = {"metrics": [
+        {"id": "a", "metric": "rouge", "reference": "gold"},
+        {"id": "b", "metric": "mhic", "reference": "posts"},
+    ]}
+    assert gb._uses_posts(spec) is True
+
+
+def test_uses_posts_false_when_no_reference_is_posts():
+    spec = {"metrics": [{"id": "a", "metric": "rouge", "reference": "gold"}]}
+    assert gb._uses_posts(spec) is False
+
+
+def test_instance_groups_dedups_identical_metric_and_params():
+    spec = {"metrics": [
+        {"id": "fc_expert", "metric": "fc", "reference": "gold"},
+        {"id": "fc_document", "metric": "fc", "reference": "posts"},
+    ]}
+    entry_attr, instances = gb._instance_groups(spec)
+    assert entry_attr == {"fc_expert": "fc_expert", "fc_document": "fc_expert"}
+    assert instances == [("fc_expert", "fc", {})]
+
+
+def test_instance_groups_separate_instances_for_different_params():
+    spec = {"metrics": [
+        {"id": "rouge_1", "metric": "rouge", "reference": "gold", "params": {"configuration": "1"}},
+        {"id": "rouge_l", "metric": "rouge", "reference": "gold", "params": {"configuration": "l"}},
+    ]}
+    entry_attr, instances = gb._instance_groups(spec)
+    assert entry_attr == {"rouge_1": "rouge_1", "rouge_l": "rouge_l"}
+    assert len(instances) == 2
+
+
+def test_reference_expr_single_kind_gold():
+    entry = {"reference": "gold"}
+    info = gb.METRIC_REGISTRY["rouge"]
+    assert gb._reference_expr(entry, info) == "gold_summary"
+
+
+def test_reference_expr_single_kind_posts_joins():
+    entry = {"reference": "posts"}
+    info = gb.METRIC_REGISTRY["rouge"]
+    assert gb._reference_expr(entry, info) == '" ".join(document_posts)'
+
+
+def test_reference_expr_list_kind_gold_wraps():
+    entry = {"reference": "gold"}
+    info = gb.METRIC_REGISTRY["mhic"]
+    assert gb._reference_expr(entry, info) == "[gold_summary]"
+
+
+def test_reference_expr_list_kind_posts_passthrough():
+    entry = {"reference": "posts"}
+    info = gb.METRIC_REGISTRY["mhic"]
+    assert gb._reference_expr(entry, info) == "document_posts"
+
+
+def test_reference_expr_dual_kind_passthrough():
+    entry = {"reference": "posts"}
+    info = gb.METRIC_REGISTRY["fc"]
+    assert gb._reference_expr(entry, info) == "document_posts"
+
+
+def test_reference_expr_precompute_claims_posts_joins():
+    entry = {"reference": "posts"}
+    info = gb.METRIC_REGISTRY["fact"]
+    assert gb._reference_expr(entry, info) == '" ".join(document_posts)'
+
+
+def test_format_ctor_call_merges_default_and_entry_params():
+    info = gb.METRIC_REGISTRY["rouge"]
+    call = gb._format_ctor_call(info, {"metric": "f"})
+    assert call == "ROUGE(configuration='1', metric='f')"
+
+
+def test_format_ctor_call_includes_fact_fixed_params():
+    info = gb.METRIC_REGISTRY["fact"]
+    call = gb._format_ctor_call(info, {})
+    assert call == "FactScorer(llm_text={}, reference={}, min_claim=1, max_claim=30)"
