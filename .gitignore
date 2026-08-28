@@ -3,3 +3,5 @@ __pycache__/
 adsolve_utils.egg-info
 .venv
 evaluation_bundles/data/
+.superpowers/*
+docs/
