@@ -1,0 +1,19 @@
+name: social_media_example
+metrics:
+  - id: mhic
+    metric: mhic
+    reference: posts
+  - id: intra_nli
+    metric: intra_nli
+  - id: fc_expert
+    metric: fc
+    reference: gold
+  - id: fc_document
+    metric: fc
+    reference: posts
+  - id: style_similarity
+    metric: style_roberta
+    reference: gold
+  - id: bert_score
+    metric: bertscore
+    reference: gold

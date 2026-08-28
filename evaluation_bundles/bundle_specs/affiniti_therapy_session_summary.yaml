@@ -1,0 +1,14 @@
+# @format
+
+name: affiniti_therapy_session_summary
+metrics:
+  - id: intra_nli
+    metric: intra_nli
+    params:
+      hf_cache_dir: null
+  - id: mhic
+    metric: mhic
+    reference: posts
+  - id: fc_document
+    metric: fc
+    reference: posts
