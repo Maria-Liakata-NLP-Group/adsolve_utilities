@@ -5,3 +5,11 @@ adsolve_utils.egg-info
 evaluation_bundles/data/
 .superpowers/*
 docs/
+
+# Evaluation API: local config and runtime state.
+# .env holds METRIC_API_TOKEN -- never commit it. See .env.example.
+.env
+job_data/
+jobs.db
+jobs.db-wal
+jobs.db-shm

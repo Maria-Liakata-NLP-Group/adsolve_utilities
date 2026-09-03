@@ -6,6 +6,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Mapping, Optional
 
+from dotenv import load_dotenv
+
 ENVIRONMENT_URL_PREFIX = "METRIC_ENV_"
 ENVIRONMENT_URL_SUFFIX = "_URL"
 
@@ -37,8 +39,20 @@ def _environment_urls(env: Mapping[str, str]) -> Dict[str, str]:
     return urls
 
 
-def load_settings(env: Optional[Mapping[str, str]] = None) -> Settings:
-    env = os.environ if env is None else env
+def load_settings(env: Optional[Mapping[str, str]] = None,
+                  dotenv_path: Optional[Path] = None) -> Settings:
+    """Build Settings from the environment, falling back to a .env file.
+
+    The .env file is read only when `env` is not supplied -- that is, only on
+    the real server path (`app()`). Callers that pass an explicit mapping, which
+    is every test, are unaffected by whatever .env happens to be on disk.
+
+    Real environment variables win over .env (`override=False`), so a single
+    value can be overridden for one run without editing the file.
+    """
+    if env is None:
+        load_dotenv(dotenv_path, override=False)
+        env = os.environ
     return Settings(
         api_token=env.get("METRIC_API_TOKEN") or None,
         job_root=Path(env.get("METRIC_JOB_ROOT", "./job_data")),

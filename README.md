@@ -29,11 +29,15 @@ results by polling and (optionally) by callback.
 
 ```bash
 pip install -e ".[api]"
-export METRIC_API_TOKEN=...            # required; unset means 503, never open
-export METRIC_JOB_ROOT=./job_data
-export METRIC_DB_PATH=./jobs.db
+cp .env.example .env                   # then set METRIC_API_TOKEN in it
 uvicorn evaluation_api.app:app --factory --port 8000
 ```
+
+Settings are read from `.env` in the repo root, so nothing needs exporting. A real
+environment variable overrides the file, which is handy for a one-off change:
+`METRIC_JOB_TIMEOUT_SECONDS=60 uvicorn ...`. `.env` holds the API token and is
+gitignored; `.env.example` documents every setting. `METRIC_API_TOKEN` is required —
+if it is unset every authenticated route returns 503 rather than serving openly.
 
 | Endpoint | Purpose |
 |---|---|
