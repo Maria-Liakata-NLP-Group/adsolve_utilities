@@ -19,7 +19,10 @@ dependencies = [
   "pandas>=2.3",
   "peft>=0.15.2",
   "PyYAML>=6.0",
-  "readability-lxml>=0.8.4",
+  # Provides `Readability` (grade-level scores) for metrics/readability_metric.py.
+  # NOT readability-lxml, which claims the same `readability` module name but is
+  # an unrelated HTML article extractor exposing only `Document`.
+  "py-readability-metrics>=1.4.5",
   "rouge>=1.0.1",
   "spacy>=3.8",
   "tqdm>=4.67",
@@ -43,3 +46,7 @@ exclude = ["tests*", "docs*", "**/__pycache__"]
 # Include your YAML/JSON prompt files in the wheel (optional)
 [tool.setuptools.package-data]
 models = ["prompts/*.yaml", "example_data/*.json"]
+
+[tool.pytest.ini_options]
+markers = ["slow: runs a real evaluation subprocess; deselected by default"]
+addopts = "-m 'not slow'"
