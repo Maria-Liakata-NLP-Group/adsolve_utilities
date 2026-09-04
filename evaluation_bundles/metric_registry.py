@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, FrozenSet
+from typing import Dict, FrozenSet, List, Set
 
 
 class InputKind(str, Enum):
@@ -174,7 +174,8 @@ METRIC_CATALOG: Dict[str, CatalogEntry] = {
     "rouge": CatalogEntry(
         metric="rouge", reference="gold", label="ROUGE",
         description="N-gram overlap with the reference summary."),
-    "bert_score": CatalogEntry(
+    # Named to match the platform's own metric id, so results ingest unmapped.
+    "bertscore": CatalogEntry(
         metric="bertscore", reference="gold", label="BERTScore",
         description="Contextual embedding similarity to the reference summary."),
     "style_similarity": CatalogEntry(
@@ -215,3 +216,45 @@ METRIC_CATALOG: Dict[str, CatalogEntry] = {
         metric="greenscore", reference="gold", label="GREEN score",
         description="Radiology report generation quality (isolated environment)."),
 }
+
+
+class UnknownMetricError(Exception):
+    """Raised when a caller names metric ids that are not in the catalog."""
+
+    def __init__(self, unknown: List[str]) -> None:
+        self.unknown = unknown
+        super().__init__(f"Unknown metric ids: {', '.join(unknown)}")
+
+
+def expand_catalog_ids(metric_ids: List[str]) -> List[dict]:
+    """Turn catalog ids into bundle-spec metric entries, preserving order.
+
+    The result is exactly what someone would hand-write under bundle_specs/, so
+    everything downstream -- validate_spec, render_bundle -- is unchanged.
+    """
+    unknown = [m for m in metric_ids if m not in METRIC_CATALOG]
+    if unknown:
+        raise UnknownMetricError(unknown)
+
+    entries: List[dict] = []
+    for metric_id in metric_ids:
+        catalog_entry = METRIC_CATALOG[metric_id]
+        entry: dict = {"id": metric_id, "metric": catalog_entry.metric}
+        if catalog_entry.reference is not None:
+            entry["reference"] = catalog_entry.reference
+        if catalog_entry.params:
+            entry["params"] = dict(catalog_entry.params)
+        entry.update(catalog_entry.extra)
+        entries.append(entry)
+    return entries
+
+
+def build_spec(name: str, metric_ids: List[str]) -> dict:
+    """Build a full bundle spec, the same shape load_spec() returns for YAML."""
+    return {"name": name, "metrics": expand_catalog_ids(metric_ids)}
+
+
+def required_references(metric_ids: List[str]) -> Set[str]:
+    """Which reference data the run needs: subset of {'gold', 'posts'}."""
+    references = {METRIC_CATALOG[m].reference for m in metric_ids}
+    return {r for r in references if r in {"gold", "posts"}}

@@ -9,7 +9,7 @@ from metric_registry import METRIC_CATALOG, METRIC_REGISTRY, CatalogEntry, Input
 NAME_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
 
 EXPECTED_CATALOG_IDS = {
-    "rouge", "bert_score", "style_similarity", "evidence_appropriateness",
+    "rouge", "bertscore", "style_similarity", "evidence_appropriateness",
     "cross_nli", "intra_nli", "flesch_kincaid_grade_level", "mhic",
     "fc_expert", "fc_document", "fact_recall", "fact_precision", "green_score",
 }

@@ -49,7 +49,7 @@ def test_expansion_reproduces_the_hand_written_social_media_spec():
     hand_written = gb.load_spec(spec_path)
     expanded = catalog.build_spec(
         "social_media_example",
-        ["mhic", "intra_nli", "fc_expert", "fc_document", "style_similarity", "bert_score"],
+        ["mhic", "intra_nli", "fc_expert", "fc_document", "style_similarity", "bertscore"],
     )
     assert gb.render_bundle(expanded, spec_path) == gb.render_bundle(hand_written, spec_path)
 
