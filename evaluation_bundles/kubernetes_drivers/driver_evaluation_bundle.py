@@ -102,8 +102,8 @@ OFFLINE = os.environ.get("KF_HF_OFFLINE", "1") == "1"
 # ── Job configuration (edit per run) ────────────────────────────────────────
 JOB_NAME = "adsolve-eval-affiniti"
 
-IN_DIR = f"{MOUNTPATH}/adsolve_eval_data/affiniti/in"
-OUT_DIR = f"{MOUNTPATH}/adsolve_eval_data/affiniti/out"
+IN_DIR = _require("DATA_INPUT_DIR")
+OUT_DIR = _require("DATA_OUTPUT_DIR")
 
 # ── Eval run configuration ──────────────────────────────────────────────────
 # The affiniti spec: intra_nli, mhic, fc_document.
