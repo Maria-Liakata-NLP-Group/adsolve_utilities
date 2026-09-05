@@ -9,11 +9,24 @@
 # Dependencies are pinned here rather than read from pyproject.toml for the same
 # reason. Keep this list in sync with [project.dependencies] in pyproject.toml.
 #
-#   GPU: pick a base whose bundled torch already satisfies torch>=2.7 --
-#        this build will not upgrade it.
-#     BASE_IMAGE=pytorch/pytorch:2.8.0-cuda12.8-cudnn9-runtime
-ARG BASE_IMAGE=python:3.12-slim
+# Defaults to a CUDA base, because a CPU base silently produces an image that
+# cannot use the GPU at all: torch.version.cuda is None, nvidia-smi shows the
+# card at 0% with no processes, and nothing errors. The tag matches the group's
+# other Kubeflow images and is known to work on this cluster (CUDA 12.1 against a
+# 12.8 driver is fine -- drivers are backward compatible).
+#
+# NOTE: this base ships torch 2.4.0, and the build below deliberately does NOT
+# upgrade it -- doing so would replace the CUDA build with a CPU one. pyproject's
+# torch>=2.7 is therefore not enforced inside this image.
+#
+#   CPU (local testing only, no GPU support):
+#     --build-arg BASE_IMAGE=python:3.12-slim --build-arg REQUIRE_CUDA=0
+ARG BASE_IMAGE=pytorch/pytorch:2.4.0-cuda12.1-cudnn9-runtime
 FROM ${BASE_IMAGE}
+
+# Set to 0 for a deliberate CPU build; 1 makes the smoke test below refuse to
+# produce a CUDA-less image by accident.
+ARG REQUIRE_CUDA=1
 
 # Where torch comes from when the base image has none. The default PyPI wheel
 # bundles CUDA and is ~2.5GB even for CPU-only use; this index serves a slim CPU
@@ -62,5 +75,18 @@ RUN pip install --no-cache-dir awscli s3cmd
 # be able to. punkt_tab is what nltk >= 3.9 looks for (py-readability-metrics
 # calls sent_tokenize); punkt is kept for anything still on the old name.
 RUN python -m nltk.downloader -d ${NLTK_DATA} punkt_tab punkt
+
+# Smoke test: fail the BUILD rather than a GPU job if the environment is broken.
+# torch.cuda.is_available() is expected to be False here -- builders have no GPU.
+# What matters is torch.version.cuda: None means a CPU-only wheel, which would
+# run on the cluster at 0% GPU utilisation without ever raising an error.
+RUN python -c "\
+import torch, transformers, nltk, readability, yaml; \
+print('torch       :', torch.__version__); \
+print('cuda build  :', torch.version.cuda); \
+print('transformers:', transformers.__version__); \
+nltk.data.find('tokenizers/punkt_tab'); \
+assert torch.version.cuda or '${REQUIRE_CUDA}' == '0', 'CPU-only torch: this image cannot use the GPU (set REQUIRE_CUDA=0 if deliberate)'; \
+print('image OK')"
 
 WORKDIR /workspace
