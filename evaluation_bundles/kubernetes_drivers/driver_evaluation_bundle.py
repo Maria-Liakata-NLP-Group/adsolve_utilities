@@ -82,7 +82,12 @@ if not access_key or not secret_key:
 NAMESPACE = _require("KF_NAMESPACE")
 CLAIMNAME = _require("KF_CLAIMNAME")
 IMAGE_NAME = _require("KF_IMAGE")
-QUEUE_NAME = os.environ.get("KF_QUEUE", "nlp")
+# Empty = submit with no Kueue label, so Kueue ignores the job and the PyTorchJob
+# controller runs it directly. kf-acw405 has no LocalQueue (kubectl get
+# localqueues returns nothing), and a label naming a queue that does not exist in
+# THIS namespace leaves the job suspended forever. Set this to "nlp" once a
+# LocalQueue exists here.
+QUEUE_NAME = os.environ.get("KF_QUEUE", "")
 GPU_RESOURCE = os.environ.get("KF_GPU_RESOURCE", "nvidia.com/a40")
 S3_ENDPOINT = os.environ.get(
     "KF_S3_ENDPOINT",
@@ -167,7 +172,7 @@ manifest = {
     "metadata": {
         "name": JOB_NAME,
         "namespace": NAMESPACE,
-        "labels": {"kueue.x-k8s.io/queue-name": QUEUE_NAME},
+        **({"labels": {"kueue.x-k8s.io/queue-name": QUEUE_NAME}} if QUEUE_NAME else {}),
     },
     "spec": {
         "pytorchReplicaSpecs": {
