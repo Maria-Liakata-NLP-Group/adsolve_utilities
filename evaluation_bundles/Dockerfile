@@ -11,17 +11,22 @@
 #
 # Defaults to a CUDA base, because a CPU base silently produces an image that
 # cannot use the GPU at all: torch.version.cuda is None, nvidia-smi shows the
-# card at 0% with no processes, and nothing errors. The tag matches the group's
-# other Kubeflow images and is known to work on this cluster (CUDA 12.1 against a
-# 12.8 driver is fine -- drivers are backward compatible).
+# card at 0% with no processes, and nothing errors.
 #
-# NOTE: this base ships torch 2.4.0, and the build below deliberately does NOT
-# upgrade it -- doing so would replace the CUDA build with a CPU one. pyproject's
-# torch>=2.7 is therefore not enforced inside this image.
+# 2.8.0 rather than the 2.4.0 the group's other images use: 2.4.0 is a
+# conda-based image, and transformers detects backends via importlib.metadata,
+# which conda-installed torch often lacks. That produces
+# "AutoModelForSequenceClassification requires the PyTorch library but it was
+# not found" even though `import torch` works fine. The newer pip-based images
+# carry proper metadata, and 2.8.0 also satisfies pyproject's torch>=2.7, which
+# 2.4.0 did not.
+#
+# The build below never upgrades the base image's torch -- doing so would swap
+# the CUDA build for a CPU one -- so the tag chosen here IS the torch you get.
 #
 #   CPU (local testing only, no GPU support):
 #     --build-arg BASE_IMAGE=python:3.12-slim --build-arg REQUIRE_CUDA=0
-ARG BASE_IMAGE=pytorch/pytorch:2.4.0-cuda12.1-cudnn9-runtime
+ARG BASE_IMAGE=pytorch/pytorch:2.8.0-cuda12.8-cudnn9-runtime
 FROM ${BASE_IMAGE}
 
 # Set to 0 for a deliberate CPU build; 1 makes the smoke test below refuse to
@@ -81,12 +86,15 @@ RUN python -m nltk.downloader -d ${NLTK_DATA} punkt_tab punkt
 # What matters is torch.version.cuda: None means a CPU-only wheel, which would
 # run on the cluster at 0% GPU utilisation without ever raising an error.
 RUN python -c "\
-import torch, transformers, nltk, readability, yaml; \
-print('torch       :', torch.__version__); \
-print('cuda build  :', torch.version.cuda); \
-print('transformers:', transformers.__version__); \
+import torch, transformers, transformers.utils, nltk, readability, yaml; \
+print('torch          :', torch.__version__); \
+print('cuda build     :', torch.version.cuda); \
+print('transformers   :', transformers.__version__); \
+print('tf sees torch  :', transformers.utils.is_torch_available()); \
 nltk.data.find('tokenizers/punkt_tab'); \
 assert torch.version.cuda or '${REQUIRE_CUDA}' == '0', 'CPU-only torch: this image cannot use the GPU (set REQUIRE_CUDA=0 if deliberate)'; \
+assert transformers.utils.is_torch_available(), 'transformers cannot see torch (missing pip metadata? conda-based base image?) -- every AutoModel call fails at runtime'; \
+transformers.AutoModelForSequenceClassification; \
 print('image OK')"
 
 WORKDIR /workspace
