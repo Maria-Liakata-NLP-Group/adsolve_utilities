@@ -36,16 +36,24 @@ extras from the repo root:
 python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[api]"
+python -m spacy download en_core_web_sm
 ```
 
-For local testing you can set up a `.env` file in the repo root that looks like this (see [`.env.example`](.env.example) for more details):
+The last line installs the spaCy English model that the `style_similarity` metric needs;
+pip does not install it with the package.
+
+For local testing, create a `.env` file in the repo root by running this from the repo
+root (see [`.env.example`](.env.example) for more details). It overwrites any existing
+`.env`:
 
 ```bash
+cat > .env <<'EOF'
 METRIC_API_TOKEN=test_token
 METRIC_JOB_ROOT=./job_data
 METRIC_DB_PATH=./jobs.db
 METRIC_JOB_TIMEOUT_SECONDS=21600
 METRIC_RETENTION_HOURS=168
+EOF
 ```
 
 Settings are read from `.env` in the repo root, so nothing needs exporting. A real
@@ -89,7 +97,7 @@ curl -s http://localhost:8000/metrics -H "X-Api-Token: test_token" | jq
 ```bash
 curl -s -X POST http://localhost:8000/evaluations \
   -H "X-Api-Token: test_token" -H "Content-Type: application/json" \
-  -d @models/example_data/social_media_evaluation_request.json
+  -d @evaluation_request.json
 ```
 
 `GET /evaluations/{job_id}`, with the `job_id` returned by `POST /evaluations`:
@@ -102,65 +110,61 @@ FastAPI also serves interactive docs at http://localhost:8000/docs, where you ca
 every endpoint in the browser: expand one, click **Try it out**, and enter the token in the
 `x-api-token` field.
 
-### Example: evaluating a social media timeline summary
+### Example: evaluating the example summaries
 
-[`models/example_data/social_media_evaluation_request.json`](models/example_data/social_media_evaluation_request.json)
-is a ready-made request built from the example timeline in
-[`clpsych_example.json`](models/example_data/clpsych_example.json). It asks for the metrics
-of the [`social_media_example`](evaluation_bundles/bundle_specs/social_media_example.yaml)
-bundle. It holds the timeline's posts (`posts`), the expert timeline summary
-(`gold_summaries`) and the summary to evaluate (`llm_summaries`). That last one is a
-hand-written placeholder; in practice it comes from a model, e.g.
+[`evaluation_bundles/example_data`](evaluation_bundles/example_data) holds three synthetic
+documents in the shape the API expects (see its
+[README](evaluation_bundles/example_data/README.md)): the source text (`posts.json`), a
+reference summary (`gold_summaries.json`) and the summary to evaluate
+(`llm_summaries.json`). In practice the last one comes from a model, e.g.
 `models/summary_generation_with_autoclass.py`.
+
+Build a request from them that asks for the metrics of the
+[`social_media_example`](evaluation_bundles/bundle_specs/social_media_example.yaml) bundle:
+
+```bash
+jq -n \
+  --slurpfile llm evaluation_bundles/example_data/llm_summaries.json \
+  --slurpfile gold evaluation_bundles/example_data/gold_summaries.json \
+  --slurpfile posts evaluation_bundles/example_data/posts.json \
+  '{name: "social_media_example",
+    metrics: ["mhic", "intra_nli", "fc_expert", "fc_document", "style_similarity", "bertscore"],
+    llm_summaries: $llm[0], gold_summaries: $gold[0], posts: $posts[0]}' \
+  > evaluation_request.json
+```
 
 With the server running (see above), submit it:
 
 ```bash
-TOKEN=test_token
-
 curl -s -X POST http://localhost:8000/evaluations \
-  -H "X-Api-Token: $TOKEN" -H "Content-Type: application/json" \
-  -d @models/example_data/social_media_evaluation_request.json
-# {"job_id":"3f2c...","status":"queued"}
+  -H "X-Api-Token: test_token" -H "Content-Type: application/json" \
+  -d @evaluation_request.json
 ```
 
+The response has the form `{"job_id": "<job_id>", "status": "queued"}`, where
+`<job_id>` is the id of the new job, a UUID such as `1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed`.
 A malformed request, such as an unknown metric id or a missing reference, is rejected
-straight away with a `422` that lists every problem. Otherwise, poll the job until its
-`status` moves from `queued` through `running` to `succeeded` or `failed`:
+straight away with a `422` that lists every problem instead.
+
+Store the `job_id` from your response in a variable, so the following commands can use
+it. Replace `<job_id>` with your id, without quotes or angle brackets:
 
 ```bash
-curl -s http://localhost:8000/evaluations/3f2c... -H "X-Api-Token: $TOKEN" | jq '.status, .error'
+JOB_ID=<job_id>
 ```
 
-Once it has succeeded, `results` holds `document_ids` plus one entry per metric id with a
-`mean` and per-document `document_level` scores:
+Then run this every so often to follow the job's progress. Its `status` moves from
+`queued` through `running` to `succeeded` or `failed`, and `error` explains a failure:
 
 ```bash
-curl -s http://localhost:8000/evaluations/3f2c... -H "X-Api-Token: $TOKEN" \
-  | jq '.results | del(.document_ids) | map_values(.mean)'
+curl -s http://localhost:8000/evaluations/$JOB_ID -H "X-Api-Token: test_token" | jq '.status, .error'
 ```
 
-The first run downloads several Hugging Face models and is slow without a GPU. For a
-quick check that the server and the subprocess work, submit the same request with only
-`flesch_kincaid_grade_level`, which needs no model download:
+If this prints `null` twice, the API returned an error instead of the job. Run the
+command without `| jq ...` to see it, e.g. `{"detail":"Unknown job id"}` when `JOB_ID`
+is wrong or not set in the current terminal.
 
-```bash
-jq '.metrics = ["flesch_kincaid_grade_level"]' models/example_data/social_media_evaluation_request.json \
-  | curl -s -X POST http://localhost:8000/evaluations \
-      -H "X-Api-Token: $TOKEN" -H "Content-Type: application/json" \
-      -d @-
-```
-
-Metric ids come from `METRIC_CATALOG` in `evaluation_bundles/metric_registry.py` — this
-repo is the source of truth for them. Adding a metric means one `METRIC_REGISTRY` entry
-(how to run it) plus one or more `METRIC_CATALOG` entries (what callers may ask for);
-`test_metric_catalog.py` fails if the two drift apart.
-
-Raw data is written to the job directory, never to SQLite, and deleted when the job
-finishes. For `sensitive: true` runs, per-sentence `detail` is stripped from results and
-no document text is transmitted or logged.
-
-See `docs/superpowers/specs/2026-08-28-metric-calculation-api-design.md` for the design.
+Once the job has succeeded, its results are in `job_data/<job_id>/results.json`.
 
 ## Models
 

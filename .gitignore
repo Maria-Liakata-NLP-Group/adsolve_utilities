@@ -13,3 +13,4 @@ job_data/
 jobs.db
 jobs.db-wal
 jobs.db-shm
+evaluation_request.json

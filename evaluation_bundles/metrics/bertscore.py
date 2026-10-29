@@ -14,7 +14,11 @@ class BERTScore:
         """
 
         self.scorer = BERTScorer(model_type=model_type, lang="en", rescale_with_baseline=True)
-        
+        # Some tokenizers (e.g. deberta-xlarge-mnli) report a placeholder model_max_length
+        # of 1e30, which bert_score passes on as max_length and overflows the tokenizer.
+        if self.scorer._tokenizer.model_max_length > 100_000:
+            self.scorer._tokenizer.model_max_length = 512
+
     def calculate_metric(self, llm_text: str, reference_text: str) -> float:
         # llm_sentences = sent_tokenize(llm_text)
         # reference_sentences = sent_tokenize(reference_text)
