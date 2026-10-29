@@ -14,6 +14,6 @@ metrics:
   - id: style_similarity
     metric: style_roberta
     reference: gold
-  - id: bert_score
+  - id: bertscore
     metric: bertscore
     reference: gold

@@ -359,7 +359,9 @@ def render_bundle(spec: dict, spec_path: str) -> str:
             lines.append(f"        {line}")
         lines.append("")
 
-    lines.append("        for document_id in tqdm(results['document_ids']):")
+    lines.append("        _total = len(results['document_ids'])")
+    lines.append("        for i, document_id in enumerate(results['document_ids'], 1):")
+    lines.append("            print(f\"Processing document {i}/{_total}: {document_id}\", flush=True)")
     lines.append("            llm_summary = llm_summaries[document_id]")
     lines.append("            gold_summary = gold_summaries[document_id]")
     if uses_posts:

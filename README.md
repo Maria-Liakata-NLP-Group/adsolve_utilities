@@ -21,6 +21,44 @@ This writes `evaluation_bundles/my_use_case_evaluation.py`, structured like the 
 See `evaluation_bundles/metric_registry.py` for the list of available metrics and
 `evaluation_bundles/bundle_specs/social_media_example.yaml` for an example spec.
 
+## Evaluation API
+
+Runs evaluations on request instead of by hand. The platform submits model outputs and a
+list of metrics; the API generates a bundle script, runs it as a subprocess, and returns
+results by polling and (optionally) by callback.
+
+```bash
+pip install -e ".[api]"
+cp .env.example .env                   # then set METRIC_API_TOKEN in it
+uvicorn evaluation_api.app:app --factory --port 8000
+```
+
+Settings are read from `.env` in the repo root, so nothing needs exporting. A real
+environment variable overrides the file, which is handy for a one-off change:
+`METRIC_JOB_TIMEOUT_SECONDS=60 uvicorn ...`. `.env` holds the API token and is
+gitignored; `.env.example` documents every setting. `METRIC_API_TOKEN` is required —
+if it is unset every authenticated route returns 503 rather than serving openly.
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /health` | Liveness, no auth |
+| `GET /metrics` | Available metric ids, labels, and which reference data each needs |
+| `POST /evaluations` | Submit a run, returns `202 {job_id}` |
+| `GET /evaluations/{job_id}` | Status, then results |
+
+All but `/health` require the `X-Api-Token` header.
+
+Metric ids come from `METRIC_CATALOG` in `evaluation_bundles/metric_registry.py` — this
+repo is the source of truth for them. Adding a metric means one `METRIC_REGISTRY` entry
+(how to run it) plus one or more `METRIC_CATALOG` entries (what callers may ask for);
+`test_metric_catalog.py` fails if the two drift apart.
+
+Raw data is written to the job directory, never to SQLite, and deleted when the job
+finishes. For `sensitive: true` runs, per-sentence `detail` is stripped from results and
+no document text is transmitted or logged.
+
+See `docs/superpowers/specs/2026-08-28-metric-calculation-api-design.md` for the design.
+
 ## Models
 
 Deep learning models, e.g. for summary generation, are gathered in the directory <a href="models">models</a>.

@@ -3,11 +3,14 @@ from nltk import sent_tokenize, word_tokenize
 import numpy as np
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
+from metrics.cache import resolve_cache_dir
+
 class EA:
-    def __init__(self, hf_cache_dir="/import/nlp-datasets/LLMs", hg_model_hub_name = "ynie/roberta-large-snli_mnli_fever_anli_R1_R2_R3-nli"):
-        self.model = AutoModelForSequenceClassification.from_pretrained(hg_model_hub_name, cache_dir=hf_cache_dir)
-        self.tokenizer = AutoTokenizer.from_pretrained(hg_model_hub_name, cache_dir=hf_cache_dir)
-        self.model.to("cuda")
+    def __init__(self, hf_cache_dir=None, hg_model_hub_name = "ynie/roberta-large-snli_mnli_fever_anli_R1_R2_R3-nli"):
+        cache_dir = resolve_cache_dir(hf_cache_dir)
+        self.model = AutoModelForSequenceClassification.from_pretrained(hg_model_hub_name, cache_dir=cache_dir)
+        self.tokenizer = AutoTokenizer.from_pretrained(hg_model_hub_name, cache_dir=cache_dir)
+        self.model.to("cuda" if torch.cuda.is_available() else "cpu")
 
     def score_nli(self, premise, hypothesis, max_length=250, do_return_all=False):
         tokenized_input_seq_pair = self.tokenizer.encode_plus(premise, hypothesis,

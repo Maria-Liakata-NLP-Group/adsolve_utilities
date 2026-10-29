@@ -6,7 +6,7 @@ numpy
 pandas
 peft
 PyYAML
-readability_lxml
+py-readability-metrics
 rouge
 spacy
 torch

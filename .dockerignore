@@ -1,0 +1,31 @@
+# Docker requires this at the build-context root, which is why it sits here
+# rather than in evaluation_bundles/ with the Dockerfile.
+
+# Secrets. .env holds METRIC_API_TOKEN -- it must never enter an image layer.
+.env
+**/hf_token.txt
+
+# Hundreds of MB of macOS-native binaries that would be wrong in a linux image.
+.venv/
+
+# Runtime state from local runs.
+job_data/
+jobs.db
+jobs.db-wal
+jobs.db-shm
+evaluation_bundles/data/
+
+# Build and editor noise.
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.git/
+.gitignore
+.DS_Store
+**/.DS_Store
+
+# Not needed at runtime.
+docs/
+.superpowers/
+*.egg-info/
